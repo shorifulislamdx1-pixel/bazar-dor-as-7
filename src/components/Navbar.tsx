@@ -27,7 +27,7 @@ type NavbarProps = {
 
 const categories = [
   { name: "চাল", href: "/category/chal", icon: "🍚" },
-  { name: "ডাল", href: "/category/dal", icon: "🌱" },
+  { name: "ডাল", href: "/category/dal", icon: "🫘" },
   { name: "তেল", href: "/category/tel", icon: "🛢️" },
   { name: "সবজি", href: "/category/sobji", icon: "🥬" },
   { name: "মাছ", href: "/category/mach", icon: "🐟" },
@@ -37,10 +37,16 @@ const categories = [
 ];
 
 const formatPrice = (price: number | string | undefined) => {
+  if (price === undefined || price === null || price === "") {
+    return "—";
+  }
+
   const value = Number(price);
 
   return Number.isFinite(value)
-    ? new Intl.NumberFormat("bn-BD").format(value)
+    ? new Intl.NumberFormat("bn-BD", {
+        maximumFractionDigits: 2,
+      }).format(value)
     : "—";
 };
 
@@ -51,6 +57,7 @@ export default function Navbar({ products = [] }: NavbarProps) {
 
   const pathname = usePathname();
   const router = useRouter();
+
   const { data: session, isPending } = authClient.useSession();
 
   useEffect(() => {
@@ -60,9 +67,9 @@ export default function Navbar({ products = [] }: NavbarProps) {
       setCurrentDate(
         new Intl.DateTimeFormat("bn-BD", {
           timeZone: "Asia/Dhaka",
-          weekday: "long",
+          weekday: "short",
           day: "numeric",
-          month: "long",
+          month: "short",
           year: "numeric",
         }).format(now)
       );
@@ -79,7 +86,7 @@ export default function Navbar({ products = [] }: NavbarProps) {
 
     updateDateTime();
 
-    const interval = setInterval(updateDateTime, 1000);
+    const interval = setInterval(updateDateTime, 60_000);
 
     return () => clearInterval(interval);
   }, []);
@@ -107,14 +114,23 @@ export default function Navbar({ products = [] }: NavbarProps) {
     }
   };
 
+  const isCategoryActive = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`);
+
   return (
-    <header className="border-b border-green-100 bg-white">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-700 p-1">
+    <header className="sticky top-0 z-50 border-b border-emerald-100/80 bg-white/95 shadow-sm backdrop-blur-md">
+      {/* Top Bar */}
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        {/* Logo */}
+        <Link
+          href="/"
+          aria-label="বাজার দর হোম"
+          className="group flex min-w-0 items-center gap-3"
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-800 p-1.5 shadow-sm transition duration-300 group-hover:rotate-3 group-hover:shadow-md">
             <Image
               src="/logo-icon.png"
-              alt="বাজার দর"
+              alt="বাজার দর লোগো"
               width={40}
               height={40}
               priority
@@ -122,42 +138,47 @@ export default function Navbar({ products = [] }: NavbarProps) {
             />
           </div>
 
-          <div>
-            <h1 className="text-xl font-extrabold text-[#183b2b]">
+          <div className="min-w-0">
+            <h1 className="text-xl font-extrabold tracking-tight text-emerald-950 sm:text-2xl">
               বাজার দর
             </h1>
 
             <p
-              className="mt-1 text-[10px] text-gray-500"
+              className="mt-0.5 text-[10px] font-medium text-gray-500 sm:text-xs"
               suppressHydrationWarning
             >
-              {currentDate}
-              {currentTime ? ` • ${currentTime}` : ""}
+              {currentDate || "বাংলাদেশের বাজার"}
+              {currentTime && ` • ${currentTime}`}
             </p>
           </div>
         </Link>
 
-        <div className="flex items-center gap-2">
+        {/* Authentication */}
+        <div className="flex shrink-0 items-center gap-2">
           {isPending ? (
-            <div className="h-9 w-24 animate-pulse rounded-lg bg-gray-100" />
+            <div className="h-9 w-28 animate-pulse rounded-xl bg-gray-100" />
           ) : session?.user ? (
             <>
               <Link
                 href="/profile"
-                className={`max-w-36 truncate rounded-lg border px-3 py-2 text-xs font-semibold transition sm:max-w-48 sm:text-sm ${
-                  pathname === "/profile"
-                    ? "border-green-700 bg-green-50 text-green-800"
-                    : "border-green-200 text-green-800 hover:bg-green-50"
+                title={session.user.name || "প্রোফাইল"}
+                className={`flex max-w-36 items-center gap-1.5 truncate rounded-xl border px-3 py-2 text-xs font-semibold transition sm:max-w-48 sm:text-sm ${
+                  pathname.startsWith("/profile")
+                    ? "border-emerald-700 bg-emerald-50 text-emerald-800"
+                    : "border-gray-200 bg-white text-gray-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
                 }`}
               >
-                👤 {session.user.name || "প্রোফাইল"}
+                <span>👤</span>
+                <span className="truncate">
+                  {session.user.name || "প্রোফাইল"}
+                </span>
               </Link>
 
               <button
                 type="button"
                 onClick={handleSignOut}
                 disabled={signingOut}
-                className="rounded-lg bg-[#183b2b] px-3 py-2 text-xs font-semibold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
+                className="rounded-xl bg-emerald-900 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:text-sm"
               >
                 {signingOut ? "অপেক্ষা করুন..." : "সাইন আউট"}
               </button>
@@ -166,10 +187,10 @@ export default function Navbar({ products = [] }: NavbarProps) {
             <>
               <Link
                 href="/signin"
-                className={`rounded-lg border px-3 py-2 text-xs font-semibold transition sm:text-sm ${
+                className={`rounded-xl border px-3 py-2 text-xs font-semibold transition active:scale-95 sm:px-4 sm:text-sm ${
                   pathname === "/signin"
-                    ? "border-green-700 bg-green-50 text-green-800"
-                    : "border-green-200 text-green-800 hover:bg-green-50"
+                    ? "border-emerald-700 bg-emerald-50 text-emerald-800"
+                    : "border-emerald-200 bg-white text-emerald-900 hover:border-emerald-400 hover:bg-emerald-50"
                 }`}
               >
                 সাইন ইন
@@ -177,10 +198,10 @@ export default function Navbar({ products = [] }: NavbarProps) {
 
               <Link
                 href="/signup"
-                className={`rounded-lg px-3 py-2 text-xs font-semibold text-white transition hover:bg-green-800 sm:text-sm ${
+                className={`rounded-xl px-3 py-2 text-xs font-semibold text-white shadow-sm transition active:scale-95 sm:px-4 sm:text-sm ${
                   pathname === "/signup"
-                    ? "bg-green-800"
-                    : "bg-[#183b2b]"
+                    ? "bg-emerald-700"
+                    : "bg-emerald-900 hover:bg-emerald-800"
                 }`}
               >
                 সাইন আপ
@@ -190,81 +211,101 @@ export default function Navbar({ products = [] }: NavbarProps) {
         </div>
       </div>
 
-      <nav className="border-y border-gray-100">
-        <div className="mx-auto flex max-w-6xl gap-5 overflow-x-auto px-4 py-3 sm:px-6">
+      {/* Category Navigation */}
+      <nav
+        aria-label="প্রধান নেভিগেশন"
+        className="border-t border-gray-100 bg-white"
+      >
+        <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-3 py-2 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className={`shrink-0 text-sm transition ${
+            aria-current={pathname === "/" ? "page" : undefined}
+            className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm transition ${
               pathname === "/"
-                ? "font-bold text-green-800"
-                : "font-medium text-gray-600 hover:text-green-800"
+                ? "bg-emerald-100 font-bold text-emerald-900"
+                : "font-medium text-gray-600 hover:bg-emerald-50 hover:text-emerald-800"
             }`}
           >
-            🏠 হোম
+            <span>🏠</span>
+            <span>হোম</span>
           </Link>
 
           {categories.map((category) => {
-            const active = pathname === category.href;
+            const active = isCategoryActive(category.href);
 
             return (
               <Link
                 key={category.href}
                 href={category.href}
-                className={`shrink-0 border-b-2 pb-1 text-sm transition ${
+                aria-current={active ? "page" : undefined}
+                className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm transition ${
                   active
-                    ? "border-green-700 font-bold text-green-800"
-                    : "border-transparent font-medium text-gray-600 hover:text-green-800"
+                    ? "bg-emerald-100 font-bold text-emerald-900"
+                    : "font-medium text-gray-600 hover:bg-emerald-50 hover:text-emerald-800"
                 }`}
               >
-                {category.icon} {category.name}
+                <span>{category.icon}</span>
+                <span>{category.name}</span>
               </Link>
             );
           })}
         </div>
       </nav>
 
+      {/* Live Price Ticker */}
       {products.length > 0 && (
-        <div className="overflow-hidden border-b border-gray-100 bg-[#fbfcfa]">
-          <MarqueeText
-            duration={18}
-            direction="right"
-            pauseOnHover={true}
-            className="py-2.5"
-          >
-            {products.map((product, index) => (
-              <span
-                key={product.id ?? product._id ?? product.slug ?? index}
-                className="mx-5 inline-flex items-center gap-2 text-xs"
+        <div className="border-t border-emerald-100 bg-emerald-50/70">
+          <div className="mx-auto flex max-w-7xl items-center">
+            <div className="z-10 flex shrink-0 items-center gap-1.5 bg-emerald-800 px-3 py-3 text-xs font-bold text-white shadow-sm sm:px-4">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-lime-300" />
+              <span>বাজার আপডেট</span>
+            </div>
+
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <MarqueeText
+                duration={24}
+                direction="right"
+                pauseOnHover={true}
+                className="py-3"
               >
-                <span className="text-gray-500">
-                  {product.nameBn || product.name || "পণ্য"}
-                </span>
+                {products.map((product, index) => {
+                  const direction = product.change?.dir;
+                  const isUp = direction === "up";
+                  const isDown = direction === "down";
 
-                <span className="font-bold text-gray-800">
-                  ৳{formatPrice(product.today)}
-                </span>
+                  return (
+                    <span
+                      key={product.id ?? product._id ?? product.slug ?? index}
+                      className="mx-4 inline-flex items-center gap-2 whitespace-nowrap text-xs sm:mx-6 sm:text-sm"
+                    >
+                      <span className="font-medium text-gray-600">
+                        {product.nameBn || product.name || "পণ্য"}
+                      </span>
 
-                <span
-                  className={
-                    product.change?.dir === "up"
-                      ? "text-green-700"
-                      : product.change?.dir === "down"
-                        ? "text-red-600"
-                        : "text-gray-500"
-                  }
-                >
-                  {product.change?.dir === "up"
-                    ? "▲"
-                    : product.change?.dir === "down"
-                      ? "▼"
-                      : "—"}{" "}
-                  {formatPrice(product.change?.pct ?? 0)}%
-                </span>
+                      <span className="font-bold text-emerald-950">
+                        ৳{formatPrice(product.today)}
+                      </span>
 
-                <span className="text-gray-300">|</span>
-              </span>
-            ))}
-          </MarqueeText>
+                      <span
+                        className={`inline-flex items-center gap-1 font-semibold ${
+                          isUp
+                            ? "text-green-700"
+                            : isDown
+                              ? "text-red-600"
+                              : "text-gray-500"
+                        }`}
+                      >
+                        {isUp ? "▲" : isDown ? "▼" : "—"}
+                        {formatPrice(product.change?.pct)}%
+                      </span>
+
+                      <span className="text-emerald-200">|</span>
+                    </span>
+                  );
+                })}
+              </MarqueeText>
+            </div>
+          </div>
         </div>
       )}
     </header>
